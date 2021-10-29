@@ -3,7 +3,7 @@
 #include <winternl.h>
 #include <tchar.h>
 
-#define NT_SUCCESS(x) ((x) >= 0)
+//#define NT_SUCCESS(x) ((x) >= 0)
 
 typedef struct _PROCESS_BASIC_INFORMATION64 {
 	NTSTATUS ExitStatus;
@@ -86,43 +86,43 @@ NT_QUERY_INFORMATION_PROCESS pfnNtQueryInformationProcess = NULL;
 NT_WOW64_QUERY_INFORMATION_PROCESS64 pfnNtWow64QueryInformationProcess = NULL;
 Nt_WOW64_READ_VIRTUAL_MEMORY64 pfnNtWow64ReadVirtualMemory64 = NULL;
 
-void main()
+BOOL PebBeingDebuggedFlagCheck(DWORD dwProcessId, BOOL* pbIsWow64Process, PVOID64* ppPEBAddr)
 {
 	BOOL bWow64Process = FALSE;
-	DWORD dwProcessId = 0;
+	BOOL bIsBeingDebugged = FALSE;
 	DWORD dwSizeNeeded = 0;
 	DWORD dwBytesRead = 0;
 	DWORD dwErrorCode = 0;
 	DWORD64 dwBytesRead64 = 0;
 	NTSTATUS dwStatus = 0;
-	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, 12160);
+	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwProcessId);
 	if (NULL == hProcess)
 	{
-		return;
+		return FALSE;
 	}
 
 	//HANDLE hProcess = GetCurrentProcess();
-	PEB peb = {0};
+	PEB peb = { 0 };
 	PEB64 peb64 = { 0 };
-	PROCESS_BASIC_INFORMATION pbi = {0};
+	PROCESS_BASIC_INFORMATION pbi = { 0 };
 	PROCESS_BASIC_INFORMATION64 pbi64 = { 0 };
 
 	HMODULE hNtDll = LoadLibrary(_T("ntdll.dll"));
 	if (NULL == hNtDll)
 	{
-		return;
+		return FALSE;
 	}
 
 	pfnNtQueryInformationProcess = (NT_QUERY_INFORMATION_PROCESS)GetProcAddress(hNtDll, "NtQueryInformationProcess");
 	if (NULL == pfnNtQueryInformationProcess)
 	{
-		return;
+		return FALSE; 
 	}
 
 	pfnNtWow64QueryInformationProcess = (NT_WOW64_QUERY_INFORMATION_PROCESS64)GetProcAddress(hNtDll, "NtWow64QueryInformationProcess64");
 	if (NULL == pfnNtWow64QueryInformationProcess)
 	{
-		return;
+		return FALSE;
 	}
 
 	IsWow64Process(hProcess, &bWow64Process);
@@ -133,10 +133,11 @@ void main()
 		if (!NT_SUCCESS(dwStatus) || 0 == pbi.PebBaseAddress)
 		{
 			dwErrorCode = GetLastError();
-			return;
+			return FALSE;
 		}
 		ReadProcessMemory(hProcess, pbi.PebBaseAddress, &peb, sizeof(PEB), &dwBytesRead);
-
+		bIsBeingDebugged = peb.BeingDebugged;
+		*ppPEBAddr = pbi.PebBaseAddress;
 	}
 	else
 	{
@@ -144,16 +145,53 @@ void main()
 		if (!NT_SUCCESS(dwStatus) || 0 == pbi64.PebBaseAddress)
 		{
 			dwErrorCode = GetLastError();
-			return;
+			return FALSE;
 		}
 		pfnNtWow64ReadVirtualMemory64 = (Nt_WOW64_READ_VIRTUAL_MEMORY64)GetProcAddress(hNtDll, "NtWow64ReadVirtualMemory64");
 		//如果32位程序读取的是一个64位地址会出问题
 		//ReadProcessMemory(hProcess, (LPCVOID)pbi64.PebBaseAddress, &peb64, sizeof(PEB64), &dwBytesRead);
 		pfnNtWow64ReadVirtualMemory64(hProcess, (PVOID64)pbi64.PebBaseAddress, &peb64, sizeof(PEB64), &dwBytesRead64);
+		*ppPEBAddr = (PVOID64)pbi64.PebBaseAddress;
+
+		bIsBeingDebugged = peb64.BeingDebugged;
+	}
+
+	*pbIsWow64Process = bWow64Process;
+	printf("是否是32位程序：%d\n是否正在被调试：%d\n", bWow64Process, bIsBeingDebugged);
+
+	return TRUE;
+}
+
+void AntiPebBeingDebuggedFlagCheck(HANDLE hProcess, BOOL bIsWow64Process, PVOID64 pPEBAddr)
+{
+	if (bIsWow64Process)
+	{
+		PBYTE pAddr32 = (BYTE*)((DWORD)pPEBAddr + 2);
+		BYTE dwCleanFlag = 0;
+		DWORD dwBytesWritten = 0;
+		WriteProcessMemory(hProcess, pAddr32, &dwCleanFlag, sizeof(dwCleanFlag), &dwBytesWritten);
 
 	}
-	
-	
+	else
+	{
+		PVOID64 pAddr64 = pPEBAddr;
+		*(BYTE*)((DWORD64)pAddr64 + 3) = 0;
+		//WriteProcessMemory();
+	}
+
+	return;
+}
+
+void main()
+{
+	BOOL bIsWow64Process = FALSE;
+	PVOID64 pPEBAddr = NULL;
+	//DWORD64 dwPEBAddr = 0;
+	DWORD dwProcessId = 12160;
+
+	PebBeingDebuggedFlagCheck(dwProcessId, &bIsWow64Process, &pPEBAddr);
+	AntiPebBeingDebuggedFlagCheck(dwProcessId, bIsWow64Process, pPEBAddr);
+	//PebBeingDebuggedFlagCheck(dwProcessId, &bIsWow64Process, &pPEBAddr);
 
 	getchar();
 }
