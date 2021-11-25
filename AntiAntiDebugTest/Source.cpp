@@ -2,6 +2,9 @@
 #include <Windows.h>
 #include <winternl.h>
 #include <tchar.h>
+#include <memory.h>
+
+using namespace std;
 
 //****************************************²Î¿¼********************************************
 //																						//
@@ -262,6 +265,29 @@ ErrorRet:
 
 	return bRet;
 }
+
+class CTest
+{
+public:
+	CTest()
+	{
+		printf("This is default constructure.\n");
+	}
+
+	CTest(int i)
+	{
+		m = i;
+	}
+
+	int m;
+};
+
+void process(shared_ptr<int> ptr)
+{
+	printf("ptr:%d\n", *ptr);
+}
+
+#define pi 3.14
 
 void main()
 {
