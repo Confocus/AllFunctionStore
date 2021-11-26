@@ -1,4 +1,5 @@
 #include <ntddk.h>
+//#pragma warning(disable:2220)
 
 typedef struct _DEVICE_EXTENSION
 {
@@ -7,11 +8,18 @@ typedef struct _DEVICE_EXTENSION
 	UNICODE_STRING ustrSymLinkName;
 }DEVICE_EXTENSION, * PDEVICE_EXTENSION;
 
+typedef struct _MY_DATA_STRUCT
+{
+	LIST_ENTRY ListEntry;
+	ULONG number;
+}MY_DATA_STRUCT, *PMY_DATA_STRUCT;
+
 VOID MyDriverUnload(IN PDRIVER_OBJECT	pDriverObject);
-NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject);
+NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject, IN PCWSTR pcwszDevName, IN PCWSTR pcwszSymLink);
 NTSTATUS MyDispatchRoutine(
 	IN PDEVICE_OBJECT pDevObj,
 	IN PIRP pIrp);
+VOID LinkListDemo();
 
 NTSTATUS DriverEntry(
 	IN PDRIVER_OBJECT	pDriverObject,	//从IO管理器中传进来的驱动对象
@@ -25,8 +33,10 @@ NTSTATUS DriverEntry(
 	pDriverObject->DriverUnload = MyDriverUnload;
 	pDriverObject->MajorFunction[IRP_MJ_CREATE] = MyDispatchRoutine;
 
-	CreateDevice(pDriverObject);//创建设备对象
-
+	//CreateDevice(pDriverObject);//创建设备对象
+	CreateDevice(pDriverObject, L"\\Device\\MyNTDriver", L"\\??\\MyNTDriver");
+	CreateDevice(pDriverObject, L"\\Device\\MyNTDriver2", L"\\??\\MyNTDriver2");
+	LinkListDemo();
 	return STATUS_SUCCESS;
 }
 
@@ -60,7 +70,7 @@ NTSTATUS MyDispatchRoutine(
 	return status;
 }
 
-NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject)
+NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject, IN PCWSTR pcwszDevName, IN PCWSTR pcwszSymLink)
 {
 	NTSTATUS status;
 	PDEVICE_OBJECT pDevObj = NULL;
@@ -68,7 +78,9 @@ NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject)
 	UNREFERENCED_PARAMETER(pDriverObject);
 
 	UNICODE_STRING ustrDevName;
-	RtlInitUnicodeString(&ustrDevName, L"\\Device\\MyNTDriver");
+	//RtlInitUnicodeString(&ustrDevName, L"\\Device\\MyNTDriver");
+	RtlInitUnicodeString(&ustrDevName, pcwszDevName);
+
 
 	//创建一个设备对象
 	status = IoCreateDevice(
@@ -89,7 +101,9 @@ NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject)
 	pDevExt->ustrDeviceName = ustrDevName;
 
 	UNICODE_STRING ustrSymLinkName;
-	RtlInitUnicodeString(&ustrSymLinkName, L"\\??\\MyNTDriver");
+	//RtlInitUnicodeString(&ustrSymLinkName, L"\\??\\MyNTDriver");
+	RtlInitUnicodeString(&ustrSymLinkName, pcwszSymLink);
+
 	pDevExt->ustrSymLinkName = ustrSymLinkName;
 	status = IoCreateSymbolicLink(&ustrSymLinkName, &ustrDevName);
 	if (!NT_SUCCESS(status))
@@ -99,4 +113,37 @@ NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject)
 	}
 
 	return STATUS_SUCCESS;
+}
+
+
+//驱动中链表的使用
+VOID LinkListDemo()
+{
+	LIST_ENTRY linkListHead;
+	InitializeListHead(&linkListHead);
+
+	PMY_DATA_STRUCT pMyData = NULL;
+
+	DbgPrint("Start LinkListDemo.\n");
+	for (ULONG i = 0; i < 10; i++)
+	{
+		//warning C4996: 'ExAllocatePool': was declared deprecated
+		pMyData = (PMY_DATA_STRUCT)ExAllocatePoolWithTag(PagedPool, sizeof(MY_DATA_STRUCT), 'Tag1');
+		if (pMyData)
+		{
+			pMyData->number = i;
+			InsertHeadList(&linkListHead, &pMyData->ListEntry);
+		}
+	}
+
+	while (!IsListEmpty(&linkListHead))
+	{
+		//从尾部删除
+		PLIST_ENTRY pEntry = RemoveTailList(&linkListHead);
+		//pEntry只能拿到FLink和BLink指针
+		DbgPrint("pEntry:%x\n", (ULONG)pEntry);
+		pMyData = CONTAINING_RECORD(pEntry, MY_DATA_STRUCT, ListEntry);
+		DbgPrint("pMyData:%x\n", (ULONG)pMyData);
+		DbgPrint("number:%d\n", pMyData->number);
+	}
 }
