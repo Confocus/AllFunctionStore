@@ -20,6 +20,7 @@ NTSTATUS MyDispatchRoutine(
 	IN PDEVICE_OBJECT pDevObj,
 	IN PIRP pIrp);
 VOID LinkListDemo();
+VOID TestException();
 
 NTSTATUS DriverEntry(
 	IN PDRIVER_OBJECT	pDriverObject,	//从IO管理器中传进来的驱动对象
@@ -141,9 +142,57 @@ VOID LinkListDemo()
 		//从尾部删除
 		PLIST_ENTRY pEntry = RemoveTailList(&linkListHead);
 		//pEntry只能拿到FLink和BLink指针
-		DbgPrint("pEntry:%x\n", (ULONG)pEntry);
+		//DbgPrint("pEntry:%x\n", (ULONG)pEntry);
 		pMyData = CONTAINING_RECORD(pEntry, MY_DATA_STRUCT, ListEntry);
-		DbgPrint("pMyData:%x\n", (ULONG)pMyData);
+		//DbgPrint("pMyData:%x\n", (ULONG)pMyData);
 		DbgPrint("number:%d\n", pMyData->number);
 	}
+}
+
+VOID LookasideDemo()
+{
+	PAGED_LOOKASIDE_LIST pageList;
+	ExInitializePagedLookasideList(&pageList, NULL, NULL, 0, sizeof(MY_DATA_STRUCT), 'Tag2', 0);
+	PMY_DATA_STRUCT MyObjectArray[10] = { 0 };
+	for (int i = 0; i < 10; i++)
+	{
+		MyObjectArray[i] = (PMY_DATA_STRUCT)ExAllocateFromPagedLookasideList(&pageList);
+	}
+
+	for (int i = 0; i < 10; i++)
+	{
+		ExFreeToPagedLookasideList(&pageList, MyObjectArray[i]);
+		MyObjectArray[i] = NULL;
+	}
+
+	ExDeletePagedLookasideList(&pageList);
+}
+
+VOID TestExceptionInner()
+{
+	int* pAddr = 0;
+	__try {
+		DbgPrint("Enter TestExceptionInner.\n");
+		ExRaiseAccessViolation();
+	}
+	__finally
+	{
+		while (1)
+		{
+			DbgPrint("Enter TestExceptionInner finally.\n");
+		}
+	}
+}
+
+VOID TestException()
+{
+	TestExceptionInner();
+
+	//__try {
+	//	TestExceptionInner();
+	//}
+	//__except (EXCEPTION_CONTINUE_SEARCH)
+	//{
+	//	DbgPrint("Enter TestException exception().\n");
+	//}
 }
