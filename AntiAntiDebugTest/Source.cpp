@@ -170,7 +170,7 @@ BOOL PebBeingDebuggedFlagCheck(DWORD dwProcessId, BOOL* pbIsWow64Process, PVOID6
 			dwErrorCode = GetLastError();
 			goto ErrorRet;
 		}
-		ReadProcessMemory(hProcess, pbi.PebBaseAddress, &peb, sizeof(PEB), &dwBytesRead);
+		ReadProcessMemory(hProcess, pbi.PebBaseAddress, &peb, sizeof(PEB), (SIZE_T*)&dwBytesRead);
 		bIsBeingDebugged = peb.BeingDebugged;
 		*ppPEBAddr = pbi.PebBaseAddress;
 	}
@@ -231,7 +231,7 @@ BOOL AntiPebBeingDebuggedFlagCheck(DWORD dwProcessId, BOOL bIsWow64Process, PVOI
 	{
 		PBYTE pAddr32 = (BYTE*)((DWORD)pPEBAddr + 2);
 		DWORD dwBytesWritten = 0;
-		WriteProcessMemory(hProcess, pAddr32, &dwCleanFlag, sizeof(dwCleanFlag), &dwBytesWritten);
+		WriteProcessMemory(hProcess, pAddr32, &dwCleanFlag, sizeof(dwCleanFlag), (SIZE_T*)&dwBytesWritten);
 	}
 	else
 	{
@@ -265,29 +265,6 @@ ErrorRet:
 
 	return bRet;
 }
-
-class CTest
-{
-public:
-	CTest()
-	{
-		printf("This is default constructure.\n");
-	}
-
-	CTest(int i)
-	{
-		m = i;
-	}
-
-	int m;
-};
-
-void process(shared_ptr<int> ptr)
-{
-	printf("ptr:%d\n", *ptr);
-}
-
-#define pi 3.14
 
 void main()
 {
