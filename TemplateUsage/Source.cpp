@@ -16,5 +16,5 @@ void main()
 		squares[i] = i * i;
 	}
 
-	getchar();
+	//getchar();
 }

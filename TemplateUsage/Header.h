@@ -30,7 +30,13 @@ public:
 private:
 	std::shared_ptr<std::vector<T>> data;
 	void check(size_type i, const std::string& msg) const;
+
+	//模板类中使用静态成员
+	static std::size_t ctr;
 };
+
+template <typename T>
+size_t Blob<T>::ctr = 0;
 
 template <typename T>
 Blob<T>::Blob(std::initializer_list<T> il)
