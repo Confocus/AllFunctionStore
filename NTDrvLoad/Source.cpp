@@ -177,28 +177,60 @@ BeforeLeave:
 
 	return bRet;
 }
+//
+//int main()
+//{
+//	TCHAR szDriverName[] = _T("MyDriver1");
+//	TCHAR szDriverPath[] = _T("MyDriver1.sys");
+//
+//	BOOL bRet = LoadNTDriver(szDriverName, szDriverPath);
+//	if (!bRet)
+//	{
+//		printf("LoadNTDriver failed.\n");
+//		return 0;
+//	}
+//
+//	printf("LoadNTDriver succeed. Press any key unload NT driver.\n");
+//	getchar();
+//
+//	UnloadNTDriver(szDriverName);
+//	if (!bRet)
+//	{
+//		printf("UnloadNTDriver failed.\n");
+//		return 0;
+//	}
+//
+//	return 0;
+//}
 
 int main()
 {
-	TCHAR szDriverName[] = _T("MyDriver1");
-	TCHAR szDriverPath[] = _T("MyDriver1.sys");
-
-	BOOL bRet = LoadNTDriver(szDriverName, szDriverPath);
-	if (!bRet)
+	HANDLE hDevice = CreateFile(L"\\\\.\\MyNTDriver",
+		GENERIC_READ | GENERIC_WRITE,
+		0,
+		NULL,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+	if (INVALID_HANDLE_VALUE == hDevice)
 	{
-		printf("LoadNTDriver failed.\n");
-		return 0;
+		printf("CreateFile MyNTDriver failed. LastError:%d\n", GetLastError());
+		return 1;
 	}
 
-	printf("LoadNTDriver succeed. Press any key unload NT driver.\n");
-	getchar();
-
-	UnloadNTDriver(szDriverName);
-	if (!bRet)
+	UCHAR buffer[10] = { 0 };
+	ULONG ulRead = 0;
+	BOOL bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
+	if (bRet)
 	{
-		printf("UnloadNTDriver failed.\n");
-		return 0;
+		printf("Read %d bytes from buffer.\n", ulRead);
+		for (int i = 0; i < (int)ulRead; i++)
+		{
+			printf("%02X ", buffer[i]);
+		}
+		printf("\n");
 	}
 
+	CloseHandle(hDevice);
 	return 0;
 }
