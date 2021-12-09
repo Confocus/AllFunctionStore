@@ -1,4 +1,5 @@
 #include <ntddk.h>
+#include "Header.h"
 //#pragma warning(disable:2220)
 
 typedef struct _DEVICE_EXTENSION
@@ -14,20 +15,6 @@ typedef struct _MY_DATA_STRUCT
 	ULONG number;
 }MY_DATA_STRUCT, *PMY_DATA_STRUCT;
 
-VOID MyDriverUnload(IN PDRIVER_OBJECT	pDriverObject);
-NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject, IN PCWSTR pcwszDevName, IN PCWSTR pcwszSymLink);
-NTSTATUS MyDispatchRoutine(
-	IN PDEVICE_OBJECT pDevObj,
-	IN PIRP pIrp);
-VOID LinkListDemo();
-VOID TestException();
-VOID DrvStringOperateDemo();
-VOID DrvCreateFileDemo();
-VOID DrvOpenFileDemo_1();
-VOID DrvOpenFileDemo_2();
-VOID DrvGetFileAttributeDemo();
-VOID DrvWriteFileDemo();
-VOID DrvReadFileDemo();
 
 NTSTATUS DriverEntry(
 	IN PDRIVER_OBJECT	pDriverObject,	//从IO管理器中传进来的驱动对象
@@ -44,8 +31,7 @@ NTSTATUS DriverEntry(
 	//CreateDevice(pDriverObject);//创建设备对象
 	CreateDevice(pDriverObject, L"\\Device\\MyNTDriver", L"\\??\\MyNTDriver");
 	CreateDevice(pDriverObject, L"\\Device\\MyNTDriver2", L"\\??\\MyNTDriver2");
-	DrvReadFileDemo();
-
+	DrvEnumRegValueKeyDemo();
 	return STATUS_SUCCESS;
 }
 
@@ -635,3 +621,4 @@ VOID DrvReadFileDemo()
 	ZwClose(hFile);
 	ExFreePool(pBuffer);
 }
+
