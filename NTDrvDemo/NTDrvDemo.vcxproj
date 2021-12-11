@@ -143,6 +143,7 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DispatchFuncs.c" />
     <ClCompile Include="FileOpr.c" />
     <ClCompile Include="RegOpr.c" />
     <ClCompile Include="Source.c" />

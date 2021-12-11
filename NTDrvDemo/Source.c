@@ -2,19 +2,11 @@
 #include "Header.h"
 //#pragma warning(disable:2220)
 
-typedef struct _DEVICE_EXTENSION
-{
-	PDEVICE_OBJECT pDeviceObject;
-	UNICODE_STRING ustrDeviceName;
-	UNICODE_STRING ustrSymLinkName;
-}DEVICE_EXTENSION, * PDEVICE_EXTENSION;
-
 typedef struct _MY_DATA_STRUCT
 {
 	LIST_ENTRY ListEntry;
 	ULONG number;
 }MY_DATA_STRUCT, *PMY_DATA_STRUCT;
-
 
 NTSTATUS DriverEntry(
 	IN PDRIVER_OBJECT	pDriverObject,	//从IO管理器中传进来的驱动对象
@@ -28,13 +20,17 @@ NTSTATUS DriverEntry(
 	pDriverObject->DriverUnload = MyDriverUnload;
 	pDriverObject->MajorFunction[IRP_MJ_CREATE] = MyDispatchRoutine;
 	pDriverObject->MajorFunction[IRP_MJ_CLOSE] = MyDispatchRoutine;
-	pDriverObject->MajorFunction[IRP_MJ_WRITE] = MyDispatchRoutine;
-	pDriverObject->MajorFunction[IRP_MJ_READ] = MyDispatchReadFromBuffer;
+	//pDriverObject->MajorFunction[IRP_MJ_WRITE] = MyDispatchWriteFromBuffer;
+	pDriverObject->MajorFunction[IRP_MJ_READ] = MyDispatchRoutine;
+	pDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = MyDispatchDeviceIoControlFromBuffer;
+	
+	DbgPrint("Called by process pid: %d\n", PsGetCurrentProcessId());
+	ULONG ulIrql = KeGetCurrentIrql();
+	DbgPrint("Current irql is %d.\n", ulIrql);
 
 	//CreateDevice(pDriverObject);//创建设备对象
 	CreateDevice(pDriverObject, L"\\Device\\MyNTDriver", L"\\??\\MyNTDriver");
 	CreateDevice(pDriverObject, L"\\Device\\MyNTDriver2", L"\\??\\MyNTDriver2");
-	DrvReadFileDemo();
 
 	return STATUS_SUCCESS;
 }
@@ -49,118 +45,15 @@ VOID MyDriverUnload(IN PDRIVER_OBJECT	pDriverObject)
 	while (pNextObj != NULL)
 	{
 		PDEVICE_EXTENSION pDevExt = (PDEVICE_EXTENSION)pNextObj->DeviceExtension;
+		if (pDevExt->pBuffer)
+		{
+			ExFreePool(pDevExt->pBuffer);
+		}
 		UNICODE_STRING ustrLinkName = pDevExt->ustrSymLinkName;
 		IoDeleteSymbolicLink(&ustrLinkName);
 		pNextObj = pNextObj->NextDevice;
 		IoDeleteDevice(pDevExt->pDeviceObject);
 	}
-}
-
-NTSTATUS MyDispatchRoutine(
-	IN PDEVICE_OBJECT pDevObj,
-	IN PIRP pIrp)
-{
-	DbgPrint("Enter MyDispatchRoutine.\n");
-	UNREFERENCED_PARAMETER(pDevObj);
-
-	PIO_STACK_LOCATION stack = NULL;
-	stack = IoGetCurrentIrpStackLocation(pIrp);
-	UCHAR type = stack->MajorFunction;
-	DbgPrint("Current dispatch type is %d.\n", type);
-
-	NTSTATUS status = STATUS_SUCCESS;
-	pIrp->IoStatus.Status = status;
-	pIrp->IoStatus.Information = 0;
-	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
-	DbgPrint("Leave MyDispatchRoutine.\n");
-
-	return status;
-}
-
-NTSTATUS MyDispatchCreate(
-	IN PDEVICE_OBJECT pDevObj,
-	IN PIRP pIrp)
-{
-	DbgPrint("Enter MyDispatchCreate.\n");
-	UNREFERENCED_PARAMETER(pDevObj);
-	NTSTATUS status = STATUS_SUCCESS;
-	pIrp->IoStatus.Status = status;
-	pIrp->IoStatus.Information = 0;
-	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
-
-	DbgPrint("Leave MyDispatchCreate.\n");
-	return status;
-}
-
-NTSTATUS MyDispatchClose(
-	IN PDEVICE_OBJECT pDevObj,
-	IN PIRP pIrp)
-{
-	DbgPrint("Enter MyDispatchClose.\n");
-
-	UNREFERENCED_PARAMETER(pDevObj);
-	NTSTATUS status = STATUS_SUCCESS;
-	pIrp->IoStatus.Status = status;
-	pIrp->IoStatus.Information = 0;
-	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
-	DbgPrint("Leave MyDispatchClose.\n");
-
-	return status;
-}
-
-NTSTATUS MyDispatchWrite(
-	IN PDEVICE_OBJECT pDevObj,
-	IN PIRP pIrp)
-{
-	DbgPrint("Enter MyDispatchWrite.\n");
-
-	UNREFERENCED_PARAMETER(pDevObj);
-	NTSTATUS status = STATUS_SUCCESS;
-	pIrp->IoStatus.Status = status;
-	pIrp->IoStatus.Information = 0;
-	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
-	DbgPrint("Leave MyDispatchWrite.\n");
-
-	return status;
-}
-
-NTSTATUS MyDispatchRead(
-	IN PDEVICE_OBJECT pDevObj,
-	IN PIRP pIrp)
-{
-	DbgPrint("Enter MyDispatchRead.\n");
-	UNREFERENCED_PARAMETER(pDevObj);
-	NTSTATUS status = STATUS_SUCCESS;
-
-	pIrp->IoStatus.Status = status;
-	pIrp->IoStatus.Information = 0;
-	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
-
-	DbgPrint("Leave MyDispatchRead.\n");
-
-	return status;
-}
-
-//从缓冲区读取数据：Buffered_IO
-NTSTATUS MyDispatchReadFromBuffer(
-	IN PDEVICE_OBJECT pDevObj,
-	IN PIRP pIrp)
-{
-	DbgPrint("Enter MyDispatchReadFromBuffer.\n");
-	UNREFERENCED_PARAMETER(pDevObj);
-	NTSTATUS status = STATUS_SUCCESS;
-	PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(pIrp);
-	//得到需要读设备的字节数
-	ULONG ulReadLength = stack->Parameters.Read.Length;
-
-	pIrp->IoStatus.Status = status;
-	pIrp->IoStatus.Information = ulReadLength;
-	memset(pIrp->AssociatedIrp.SystemBuffer, 0x66, ulReadLength);
-	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
-
-	DbgPrint("Leave MyDispatchReadFromBuffer.\n");
-
-	return status;
 }
 
 NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject, IN PCWSTR pcwszDevName, IN PCWSTR pcwszSymLink)
@@ -187,10 +80,19 @@ NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject, IN PCWSTR pcwszDevName, I
 	if (!NT_SUCCESS(status))
 		return status;
 
-	pDevObj->Flags |= DO_BUFFERED_IO;
+	//pDevObj->Flags |= DO_DIRECT_IO;
+	//pDevObj->Flags |= DO_BUFFERED_IO;
 	pDevExt = (PDEVICE_EXTENSION)pDevObj->DeviceExtension;
 	pDevExt->pDeviceObject = pDevObj;
 	pDevExt->ustrDeviceName = ustrDevName;
+	pDevExt->ulMaxBufferSize = MAX_FILE_LEGNTH;
+	pDevExt->ulFileLength = 0;
+	pDevExt->pBuffer = NULL;
+	pDevExt->pBuffer = (PVOID)ExAllocatePoolWithTag(PagedPool, pDevExt->ulMaxBufferSize, 123);
+	if (NULL == pDevExt->pBuffer)
+	{
+		DbgPrint("ExAllocatePoolWithTag for pDevExt->pBuffer failed.\n");
+	}
 
 	UNICODE_STRING ustrSymLinkName;
 	//RtlInitUnicodeString(&ustrSymLinkName, L"\\??\\MyNTDriver");
@@ -206,7 +108,6 @@ NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject, IN PCWSTR pcwszDevName, I
 
 	return STATUS_SUCCESS;
 }
-
 
 //驱动中链表的使用
 VOID LinkListDemo()

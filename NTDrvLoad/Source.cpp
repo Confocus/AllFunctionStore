@@ -1,6 +1,11 @@
 #include <Windows.h>
 #include <iostream>
 #include <tchar.h>
+#define IOCTL_TEST1	CTL_CODE(\
+FILE_DEVICE_UNKNOWN,\
+0x800,\
+METHOD_BUFFERED,\
+FILE_ANY_ACCESS)
 
 BOOL LoadNTDriver(TCHAR* lpszDriverName, TCHAR* lpszDriverPath)
 {
@@ -218,9 +223,33 @@ int main()
 		return 1;
 	}
 
-	UCHAR buffer[10] = { 0 };
+	/*UCHAR buffer[10] = { 0 };
 	ULONG ulRead = 0;
-	BOOL bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
+	BOOL bRet = FALSE;
+	bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
+	if (bRet)
+	{
+		printf("Read %d bytes from buffer.\n", ulRead);
+		printf("Buffer addr 0x%08X bytes from buffer.\n", (ULONG)buffer);
+
+		for (int i = 0; i < (int)ulRead; i++)
+		{
+			printf("%02X ", buffer[i]);
+		}
+		printf("\n");
+	}*/
+
+	/////////////////////////²âÊÔBufferedIO/////////////////////////////////////////////////
+	/*UCHAR buffer2[10] = { 0 };
+	memset(buffer2, 0x70, 10);
+	ULONG ulWrite = 0;
+	bRet = WriteFile(hDevice, buffer2, 10, &ulWrite, NULL);
+	if (bRet)
+	{
+		printf("Write %d bytes.\n", ulWrite);
+	}
+
+	bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
 	if (bRet)
 	{
 		printf("Read %d bytes from buffer.\n", ulRead);
@@ -229,8 +258,23 @@ int main()
 			printf("%02X ", buffer[i]);
 		}
 		printf("\n");
-	}
+	}*/
+
+	//²âÊÔDeviceIoControl
+	char bufferIn[10] = { 63,63,63,63,63,63,63,63,63,63 };
+	char bufferOut[10] = { 0 };
+	ULONG ulRetSize = 0;
+	DeviceIoControl(hDevice,
+		IOCTL_TEST1,
+		bufferIn,
+		10,
+		bufferOut,
+		10,
+		&ulRetSize,
+		NULL
+	);
 
 	CloseHandle(hDevice);
+	getchar();
 	return 0;
 }
