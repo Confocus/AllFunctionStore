@@ -144,7 +144,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DispatchFuncs.c" />
+    <ClCompile Include="EventOperationDemo.cpp" />
     <ClCompile Include="FileOpr.c" />
+    <ClCompile Include="LookasideDemo.c" />
     <ClCompile Include="RegOpr.c" />
     <ClCompile Include="Source.c" />
   </ItemGroup>

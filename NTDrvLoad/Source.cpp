@@ -188,132 +188,142 @@ BeforeLeave:
 
 	return bRet;
 }
-//
-//int main()
-//{
-//	TCHAR szDriverName[] = _T("MyDriver1");
-//	TCHAR szDriverPath[] = _T("MyDriver1.sys");
-//
-//	BOOL bRet = LoadNTDriver(szDriverName, szDriverPath);
-//	if (!bRet)
-//	{
-//		printf("LoadNTDriver failed.\n");
-//		return 0;
-//	}
-//
-//	printf("LoadNTDriver succeed. Press any key unload NT driver.\n");
-//	getchar();
-//
-//	UnloadNTDriver(szDriverName);
-//	if (!bRet)
-//	{
-//		printf("UnloadNTDriver failed.\n");
-//		return 0;
-//	}
-//
-//	return 0;
-//}
-IMAGE_DIRECTORY_ENTRY_SECURITY
-int main()
+
+//参数一：-start表示安装，-stop表示卸载
+int main(int argc, char* argv[])
 {
-	HANDLE hDevice = CreateFile(L"\\\\.\\MyNTDriver",
-		GENERIC_READ | GENERIC_WRITE,
-		0,
-		NULL,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		NULL);
-	if (INVALID_HANDLE_VALUE == hDevice)
-	{
-		printf("CreateFile MyNTDriver failed. LastError:%d\n", GetLastError());
-		return 1;
-	}
-
-	/*UCHAR buffer[10] = { 0 };
-	ULONG ulRead = 0;
+	TCHAR szDriverName[] = _T("NTDrvDemo");
+	TCHAR szDriverPath[] = _T("NTDrvDemo.sys");
 	BOOL bRet = FALSE;
-	bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
-	if (bRet)
-	{
-		printf("Read %d bytes from buffer.\n", ulRead);
-		printf("Buffer addr 0x%08X bytes from buffer.\n", (ULONG)buffer);
 
-		for (int i = 0; i < (int)ulRead; i++)
+	if (_stricmp(argv[1], "-start") == 0)
+	{
+		bRet = LoadNTDriver(szDriverName, szDriverPath);
+		if (!bRet)
 		{
-			printf("%02X ", buffer[i]);
+			printf("LoadNTDriver failed.\n");
+			return 0;
 		}
-		printf("\n");
-	}*/
 
-	/////////////////////////测试BufferedIO/////////////////////////////////////////////////
-	/*UCHAR buffer2[10] = { 0 };
-	memset(buffer2, 0x70, 10);
-	ULONG ulWrite = 0;
-	bRet = WriteFile(hDevice, buffer2, 10, &ulWrite, NULL);
-	if (bRet)
-	{
-		printf("Write %d bytes.\n", ulWrite);
+		printf("LoadNTDriver succeed. Press any key unload NT driver.\n");
 	}
-
-	bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
-	if (bRet)
+	else if (_stricmp(argv[1], "-stop") == 0)
 	{
-		printf("Read %d bytes from buffer.\n", ulRead);
-		for (int i = 0; i < (int)ulRead; i++)
+		bRet = UnloadNTDriver(szDriverName);
+		if (!bRet)
 		{
-			printf("%02X ", buffer[i]);
+			printf("UnloadNTDriver failed.\n");
+			return 0;
 		}
-		printf("\n");
-	}*/
 
-	//测试DeviceIoControl
-	/*char bufferIn[10] = { 63,63,63,63,63,63,63,63,63,63 };
-	char bufferOut[10] = { 0 };
-	ULONG ulRetSize = 0;
-	DeviceIoControl(hDevice,
-		IOCTL_TEST1,
-		bufferIn,
-		10,
-		bufferOut,
-		10,
-		&ulRetSize,
-		NULL
-	);
-
-	CloseHandle(hDevice);*/
-
-	//应用层与内核层使用Event进行通信
-	BOOL bRet = FALSE;
-	DWORD dwOutput = 0;
-	HANDLE hEvent = NULL;
-
-	//自动的且未触发的事件
-	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	if (NULL == hEvent)
-	{
-		goto ErrorFlag;
+		printf("UnloadNTDriver succeed. Press any key unload NT driver.\n");
 	}
-	bRet = DeviceIoControl(hDevice,
-		IOCTL_TRANSMIT_EVENT,
-		&hEvent,
-		sizeof(hEvent),
-		NULL,
-		0,
-		&dwOutput,
-		NULL);
-
-	WaitForSingleObject(hEvent, INFINITE);
-	printf("Get event..\n");
-
-ErrorFlag:
-	if (hEvent)
-	{
-		CloseHandle(hEvent);
-	}
-	if (hDevice)
-	{
-		CloseHandle(hDevice);
-	}
+	
 	getchar();
+
 	return 0;
 }
+//IMAGE_DIRECTORY_ENTRY_SECURITY
+//int main()
+//{
+//	HANDLE hDevice = CreateFile(L"\\\\.\\MyNTDriver",
+//		GENERIC_READ | GENERIC_WRITE,
+//		0,
+//		NULL,
+//		OPEN_EXISTING,
+//		FILE_ATTRIBUTE_NORMAL,
+//		NULL);
+//	if (INVALID_HANDLE_VALUE == hDevice)
+//	{
+//		printf("CreateFile MyNTDriver failed. LastError:%d\n", GetLastError());
+//		return 1;
+//	}
+//
+//	/*UCHAR buffer[10] = { 0 };
+//	ULONG ulRead = 0;
+//	BOOL bRet = FALSE;
+//	bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
+//	if (bRet)
+//	{
+//		printf("Read %d bytes from buffer.\n", ulRead);
+//		printf("Buffer addr 0x%08X bytes from buffer.\n", (ULONG)buffer);
+//
+//		for (int i = 0; i < (int)ulRead; i++)
+//		{
+//			printf("%02X ", buffer[i]);
+//		}
+//		printf("\n");
+//	}*/
+//
+//	/////////////////////////测试BufferedIO/////////////////////////////////////////////////
+//	/*UCHAR buffer2[10] = { 0 };
+//	memset(buffer2, 0x70, 10);
+//	ULONG ulWrite = 0;
+//	bRet = WriteFile(hDevice, buffer2, 10, &ulWrite, NULL);
+//	if (bRet)
+//	{
+//		printf("Write %d bytes.\n", ulWrite);
+//	}
+//
+//	bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
+//	if (bRet)
+//	{
+//		printf("Read %d bytes from buffer.\n", ulRead);
+//		for (int i = 0; i < (int)ulRead; i++)
+//		{
+//			printf("%02X ", buffer[i]);
+//		}
+//		printf("\n");
+//	}*/
+//
+//	//测试DeviceIoControl
+//	/*char bufferIn[10] = { 63,63,63,63,63,63,63,63,63,63 };
+//	char bufferOut[10] = { 0 };
+//	ULONG ulRetSize = 0;
+//	DeviceIoControl(hDevice,
+//		IOCTL_TEST1,
+//		bufferIn,
+//		10,
+//		bufferOut,
+//		10,
+//		&ulRetSize,
+//		NULL
+//	);
+//
+//	CloseHandle(hDevice);*/
+//
+//	//应用层与内核层使用Event进行通信
+//	BOOL bRet = FALSE;
+//	DWORD dwOutput = 0;
+//	HANDLE hEvent = NULL;
+//
+//	//自动的且未触发的事件
+//	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+//	if (NULL == hEvent)
+//	{
+//		goto ErrorFlag;
+//	}
+//	bRet = DeviceIoControl(hDevice,
+//		IOCTL_TRANSMIT_EVENT,
+//		&hEvent,
+//		sizeof(hEvent),
+//		NULL,
+//		0,
+//		&dwOutput,
+//		NULL);
+//
+//	WaitForSingleObject(hEvent, INFINITE);
+//	printf("Get event..\n");
+//
+//ErrorFlag:
+//	if (hEvent)
+//	{
+//		CloseHandle(hEvent);
+//	}
+//	if (hDevice)
+//	{
+//		CloseHandle(hDevice);
+//	}
+//	getchar();
+//	return 0;
+//}

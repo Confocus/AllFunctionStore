@@ -15,7 +15,6 @@ NTSTATUS DriverEntry(
 {
 	UNREFERENCED_PARAMETER(pRegistryPath);
 	UNREFERENCED_PARAMETER(pDriverObject);
-
 	DbgPrint("Enter DriverEntry.\n");
 	pDriverObject->DriverUnload = MyDriverUnload;
 	pDriverObject->MajorFunction[IRP_MJ_CREATE] = MyDispatchRoutine;

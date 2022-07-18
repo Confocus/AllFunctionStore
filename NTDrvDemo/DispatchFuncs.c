@@ -123,7 +123,7 @@ NTSTATUS MyDispatchRead(
 	pIrp->IoStatus.Information = 0;
 	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
 
-	CreateThreadDemo();
+	//CreateThreadDemo();
 
 	DbgPrint("Leave MyDispatchRead.\n");
 
