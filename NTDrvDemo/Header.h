@@ -14,6 +14,7 @@ FILE_DEVICE_UNKNOWN,\
 METHOD_BUFFERED,\
 FILE_ANY_ACCESS)
 
+
 typedef struct _DEVICE_EXTENSION
 {
 	PDEVICE_OBJECT pDeviceObject;
@@ -59,6 +60,7 @@ NTSTATUS MyDispatchReadFromUserBuffer(
 NTSTATUS MyDispatchDeviceIoControlFromBuffer(
 	IN PDEVICE_OBJECT pDevObj,
 	IN PIRP pIrp);
+
 NTSTATUS DrvDeviceIoControlEventDemo(
 	IN PDEVICE_OBJECT pDevObj,
 	IN PIRP pIrp);

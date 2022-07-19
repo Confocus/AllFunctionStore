@@ -20,8 +20,10 @@ NTSTATUS DriverEntry(
 	pDriverObject->MajorFunction[IRP_MJ_CREATE] = MyDispatchRoutine;
 	pDriverObject->MajorFunction[IRP_MJ_CLOSE] = MyDispatchRoutine;
 	//pDriverObject->MajorFunction[IRP_MJ_WRITE] = MyDispatchWriteFromBuffer;
-	pDriverObject->MajorFunction[IRP_MJ_READ] = MyDispatchRead;
-	pDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DrvDeviceIoControlEventDemo;
+	//pDriverObject->MajorFunction[IRP_MJ_READ] = MyDispatchRead;
+	//pDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DrvDeviceIoControlEventDemo;
+	pDriverObject->MajorFunction[IRP_MJ_READ] = MyDispatchRoutine;
+	pDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = MyDispatchDeviceIoControlFromBuffer;
 	
 	DbgPrint("Called by process pid: %d\n", PsGetCurrentProcessId());
 	ULONG ulIrql = KeGetCurrentIrql();
@@ -81,6 +83,7 @@ NTSTATUS CreateDevice(IN PDRIVER_OBJECT pDriverObject, IN PCWSTR pcwszDevName, I
 
 	//pDevObj->Flags |= DO_DIRECT_IO;
 	pDevObj->Flags |= DO_BUFFERED_IO;
+	//pDevObj->Flags |= DO_BUFFERED_IO;
 	pDevExt = (PDEVICE_EXTENSION)pDevObj->DeviceExtension;
 	pDevExt->pDeviceObject = pDevObj;
 	pDevExt->ustrDeviceName = ustrDevName;

@@ -327,3 +327,75 @@ int main(int argc, char* argv[])
 //	getchar();
 //	return 0;
 //}
+//}
+
+int main()
+{
+	HANDLE hDevice = CreateFile(L"\\\\.\\MyNTDriver",
+		GENERIC_READ | GENERIC_WRITE,
+		0,
+		NULL,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+	if (INVALID_HANDLE_VALUE == hDevice)
+	{
+		printf("CreateFile MyNTDriver failed. LastError:%d\n", GetLastError());
+		return 1;
+	}
+
+	/*UCHAR buffer[10] = { 0 };
+	ULONG ulRead = 0;
+	BOOL bRet = FALSE;
+	bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
+	if (bRet)
+	{
+		printf("Read %d bytes from buffer.\n", ulRead);
+		printf("Buffer addr 0x%08X bytes from buffer.\n", (ULONG)buffer);
+
+		for (int i = 0; i < (int)ulRead; i++)
+		{
+			printf("%02X ", buffer[i]);
+		}
+		printf("\n");
+	}*/
+
+	/////////////////////////²âÊÔBufferedIO/////////////////////////////////////////////////
+	/*UCHAR buffer2[10] = { 0 };
+	memset(buffer2, 0x70, 10);
+	ULONG ulWrite = 0;
+	bRet = WriteFile(hDevice, buffer2, 10, &ulWrite, NULL);
+	if (bRet)
+	{
+		printf("Write %d bytes.\n", ulWrite);
+	}
+
+	bRet = ReadFile(hDevice, buffer, 10, &ulRead, NULL);
+	if (bRet)
+	{
+		printf("Read %d bytes from buffer.\n", ulRead);
+		for (int i = 0; i < (int)ulRead; i++)
+		{
+			printf("%02X ", buffer[i]);
+		}
+		printf("\n");
+	}*/
+
+	//²âÊÔDeviceIoControl
+	char bufferIn[10] = { 63,63,63,63,63,63,63,63,63,63 };
+	char bufferOut[10] = { 0 };
+	ULONG ulRetSize = 0;
+	DeviceIoControl(hDevice,
+		IOCTL_TEST1,
+		bufferIn,
+		10,
+		bufferOut,
+		10,
+		&ulRetSize,
+		NULL
+	);
+
+	CloseHandle(hDevice);
+	getchar();
+	return 0;
+}
