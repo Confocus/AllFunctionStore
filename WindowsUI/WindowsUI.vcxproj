@@ -145,7 +145,7 @@
     <ClInclude Include="WindowsUI.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="WindowsUI.cpp" />
+    <ClCompile Include="BezierDemo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WindowsUI.rc" />
